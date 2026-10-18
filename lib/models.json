@@ -1,0 +1,56 @@
+{
+  "_说明": "模型路由。每个角色按能力分配，主评与复核必须来自不同厂商族（family 字段不同），以规避同源偏差。family 相同的两个模型不能配成主评+复核。",
+  "_如何接入": "把 base_url / model 改成你自己能用的服务，api_key_env 指向环境变量名（不要把 key 写进本文件）。若不配置任何模型，使用 --emit-prompt 导出提示词，粘贴到任意模型（含网页版）后用 --submit 导入结果。",
+
+  "roles": {
+    "text_primary": {
+      "family": "openai-compatible",
+      "base_url": "https://api.deepseek.com/v1",
+      "model": "deepseek-chat",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "why": "中文 rubric 遵循稳定、JSON 输出干净，能自主抓出风险预案缺失和预算无明细",
+      "temperature": 0,
+      "max_tokens": 3000
+    },
+    "text_crosscheck": {
+      "family": "anthropic",
+      "base_url": "https://api.anthropic.com/v1",
+      "model": "claude-sonnet-5",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "why": "与主评不同族，用于长文复核与一票否决预筛；答案常落在 reasoning 字段，解析层已兼容",
+      "temperature": 0,
+      "max_tokens": 3000
+    },
+    "vision_primary": {
+      "family": "zhipu",
+      "base_url": "https://open.bigmodel.cn/api/paas/v4",
+      "model": "glm-4.6v-flash",
+      "api_key_env": "ZHIPUAI_API_KEY",
+      "why": "海报与 PPT 单页走视觉评审，需要读图能力",
+      "temperature": 0,
+      "max_tokens": 2500
+    },
+    "vision_crosscheck": {
+      "family": "qwen",
+      "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+      "model": "qwen-vl-max",
+      "api_key_env": "DASHSCOPE_API_KEY",
+      "why": "与视觉主评不同族，避免视觉判断的同源偏差",
+      "temperature": 0,
+      "max_tokens": 2500
+    }
+  },
+
+  "路由规则": {
+    "plan": { "primary": "text_primary", "crosscheck": "text_crosscheck" },
+    "copy": { "primary": "text_primary", "crosscheck": "text_crosscheck" },
+    "contest": { "primary": "text_primary", "crosscheck": "text_crosscheck" },
+    "ppt": { "primary": "text_primary", "crosscheck": "text_crosscheck", "vision": "vision_primary", "vision_crosscheck": "vision_crosscheck" },
+    "poster": { "primary": "vision_primary", "crosscheck": "vision_crosscheck" }
+  },
+
+  "分异阈值": {
+    "分维最大差值": 1,
+    "说明": "主评与复核任一分维差值 > 1 → needs_human；档位不同但分维均 ≤ 1 → 取主评"
+  }
+}
